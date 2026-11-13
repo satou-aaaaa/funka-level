@@ -443,6 +443,13 @@ try {
 // 深さの部品（shared-workflows template/qa/depth-check.mjs）
 { const e = await checkDepth(readFileSync(path.join(root, "depth.js"), "utf8")); check("depth.js（自信をかける・復習）の動き", e.length === 0, e.join(" / ")); }
 // 2段目の分け方：どの種類にもある（3つのどれか）
+{ const q = await newPage(); await closeHow(q);
+  check("保存に失敗したら、保存できるまで帯（#savewarn）で知らせ続け、保存できたら消す", await q.evaluate(async () => { const orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; __km.save(() => {}); __km.save(() => {}); const one = document.querySelectorAll("#savewarn").length === 1 && document.getElementById("savewarn").textContent.includes("保存できませんでした"); await new Promise((r) => setTimeout(r, 1500)); const stay = !!document.getElementById("savewarn"); Storage.prototype.setItem = orig; __km.save(() => {}); return one && stay && !document.getElementById("savewarn"); }));
+  await q.evaluate(() => __km.start("e")); await q.waitForTimeout(100);
+  await q.click(`.ch[data-j="${await ansIdx(q)}"]`); await why(q); await q.waitForSelector(".verdict");
+  await q.click("#quit"); await q.waitForTimeout(150);
+  check("とことんで正解した直後でも「ここで降りる」が効き、その問題も数える", (await q.textContent("#eres")).includes("1問"), await q.textContent("body"));
+  await q.close(); }
 { const byLv = ["kw", "jokyo", "keiho"], bad = G.KINDS.filter((k) => byLv.includes(k.id) ? k.id in G.GRP : !G.GROUPS[G.GRP[k.id]]).map((k) => k.id);
   check("2段目「どこが危ない？」の分け方：レベルで変わる種類のほかは GRP で3つのどれか", bad.length === 0 && Object.keys(G.GROUPS).length === 3 && Object.keys(G.GROUPS).every((g) => Object.values(G.GRP).includes(g)), bad.join(",")); }
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
