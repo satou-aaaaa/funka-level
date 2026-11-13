@@ -30,7 +30,7 @@ const KEIHO = { 1: "噴火予報", 2: "噴火警報（火口周辺）", 3: "噴�
       const P = G.make(`${k.id}|qa${s}`), why = [];
       if (P.opts.length !== 4 || new Set(P.opts).size !== 4 || !P.opts.includes(P.ans)) why.push("選び肢が4つちがう・答えを含まない");
       if ([P.q, P.prod, ...P.opts].some((x) => typeof x !== "string" || !x || /undefined|NaN|null|\$\{/.test(x))) why.push("中身が空");
-      const lv = +((P.q.match(/レベル([1-5])/) || [])[1] || 0);
+      const lv = k.id === "jokyo" ? (/切迫/.test(P.q) ? 5 : 4) : +((P.q.match(/レベル([1-5])/) || [])[1] || 0);
       if (k.id === "kw" && P.ans !== KW[lv]) why.push("キーワードが資料とちがう");
       if (k.id === "keiho" && P.ans !== KEIHO[lv]) why.push("警報の名前が資料とちがう");
       if (k.id === "jokyo" && P.ans !== `レベル${/切迫/.test(P.q) ? 5 : 4}（${KW[/切迫/.test(P.q) ? 5 : 4]}）`) why.push("火山のようすとレベルが合わない");
@@ -449,6 +449,10 @@ try {
   await q.click(`.ch[data-j="${await ansIdx(q)}"]`); await why(q); await q.waitForSelector(".verdict");
   await q.click("#quit"); await q.waitForTimeout(150);
   check("とことんで正解した直後でも「ここで降りる」が効き、その問題も数える", (await q.textContent("#eres")).includes("1問"), await q.textContent("body"));
+  await q.close(); }
+{ const q = await newPage(); await closeHow(q);
+  await q.evaluate(() => { localStorage.setItem("fkl-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, adays: {}, dex: { constructor: 1, toString: 2, l5: 1 }, runs: {}, kofi: {}, ach: {}, ebest: 0 })); }); await q.reload(); await q.waitForTimeout(150);
+  check("記録に constructor などの鍵が入っても、レベル帳と実績の種類に数えない（CodeRabbit funka-level#1）", (await q.textContent("#go-dex")).includes("1/14") && await q.evaluate(() => __km.tally(__km.load()).kinds) === 1, await q.textContent("#go-dex"));
   await q.close(); }
 { const byLv = ["kw", "jokyo", "keiho"], bad = G.KINDS.filter((k) => byLv.includes(k.id) ? k.id in G.GRP : !G.GROUPS[G.GRP[k.id]]).map((k) => k.id);
   check("2段目「どこが危ない？」の分け方：レベルで変わる種類のほかは GRP で3つのどれか", bad.length === 0 && Object.keys(G.GROUPS).length === 3 && Object.keys(G.GROUPS).every((g) => Object.values(G.GRP).includes(g)), bad.join(",")); }
