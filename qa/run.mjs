@@ -223,7 +223,17 @@ try {
   check("ヒント2のあとに残ったまちがいを選ぶと、正解だけが残る（消した選び肢が戻らない。saibanin-shikumi #1）", await p.locator(".ch.ng").count() === 3 && await p.locator(".ch:not(.ng)").count() === 1 && await p.evaluate(() => { const c = __km.cur(); const b = document.querySelector(".ch:not(.ng)"); return !!b && !b.disabled && c.P.opts[+b.dataset.j] === c.P.ans; }));
   await p.reload(); await p.waitForTimeout(200);
   check("とことんは閉じても続きから", (await p.textContent("#go-e")).includes("続きから"));
-  await p.click("#go-e"); await p.click("#quit"); await p.waitForTimeout(150);
+  await p.click("#go-e");
+  {
+    // 別のタブでこの回を終えて新しい回を始めていたら、古い画面の「ここで降りる」は新しい回を終えない（funka-level #1 の CodeRabbit）
+    const keep0 = await p.evaluate(() => __km.load().runs.e);
+    await p.evaluate(() => __km.save((s) => { s.runs.e = Object.assign({}, s.runs.e, { id: "other-tab-run", res: [] }); }));
+    await p.click("#quit"); await p.waitForTimeout(150);
+    check("古い画面の「ここで降りる」は、別のタブで始めた新しい回を終えない", (await p.evaluate(() => __km.load().runs.e && __km.load().runs.e.id)) === "other-tab-run");
+    await p.evaluate((r) => __km.save((s) => { s.runs.e = r; }), keep0);
+    await p.evaluate(() => __km.play("e"));
+  }
+  await p.click("#quit"); await p.waitForTimeout(150);
   check("「ここで降りる」で終わり、一度で見抜いた数（2問）が自己ベストに残る", (await mem(p)).ebest === 2 && (await p.textContent("#eres")).includes("4問") && !("e" in (await mem(p)).runs && (await mem(p)).runs.e));
   {
     // とことんの並びを何百回作って、1回の中で同じ問題が無い・続けて同じ種類が無い・足しても重ならない
@@ -338,6 +348,7 @@ try {
     check("まちがえたその時に復習へ入る（解き終えずにやめても残る。2026-11-11 CodeRabbit）", await q.evaluate(() => { const d = JSON.parse(localStorage.getItem("fkl-depth") || "{}"); return !!(d.rv && d.rv[__km.cur().tag]); }));
     await q.click(`.ch[data-j="${await ansIdx(q)}"]`);
     check("正解すると、2段目「どこが危ない？」が3つ出る（押せる所は44px以上）", await q.locator(".why button").count() === 3 && await q.locator(".verdict").count() === 0 && (await q.$$eval(".why button", (b) => b.every((x) => x.getBoundingClientRect().height >= 44))));
+    check("2段目の読み上げは、2段目の問いと3つの分け方だけ（1段目の選び肢を読まない。funka-level #1 の CodeRabbit）", await q.evaluate(() => { const e = [...document.querySelectorAll("[data-a11y-say]")]; return e.length === 4 && e[0].textContent.includes("どこが危ない") && e.slice(1).every((x) => x.matches(".why button")); }));
     check("2段目の間は、1段目の選び肢は押せない", await q.evaluate(() => [...document.querySelectorAll(".ch")].every((b) => b.disabled)));
     await q.reload(); await q.waitForTimeout(150); await q.evaluate(() => __km.play("p"));
     check("2段目の途中で閉じても、2段目から続く", await q.locator(".why button").count() === 3);

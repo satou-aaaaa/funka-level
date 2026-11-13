@@ -630,7 +630,7 @@ function play() {
   document.querySelectorAll(".ch").forEach((b) => (b.onclick = () => choose(+b.dataset.j)));
   Depth.bindSure(tag);
   if ($("hint")) $("hint").onclick = hint;
-  if ($("quit")) $("quit").onclick = () => finish(); // 正解した直後でも降りられる（解いた問題は記録ずみ）
+  if ($("quit")) $("quit").onclick = () => { const r = load().runs[MODE]; if (!r || r.id !== run.id) { toast("別の画面で先に進んでいます"); return play(); } finish(); }; // 正解した直後でも降りられる（解いた問題は記録ずみ）。別のタブで始めた新しい回は終えない（funka-level #1 の CodeRabbit）
   if (cur.step === 2) askWhy(); else paint();
   toTop();
   // 画面を作り直すとフォーカスが body に戻るので、問題へ移す（キーボード・読み上げで続けられる。saibanin-shikumi #1 の CodeRabbit）
@@ -656,7 +656,8 @@ function askWhy() {
   document.querySelectorAll(".ch").forEach((b) => { b.disabled = true; if (P.opts[+b.dataset.j] === P.ans) { b.classList.remove("ng"); b.classList.add("ok"); } });
   $("msg").className = "msg"; $("msg").textContent = `✓ 正解！ では、どこが危ない？${cur.jd && cur.jd.text ? "　" + cur.jd.text : ""}`;
   if ($("ask")) $("ask").textContent = "どこが危ない？";
-  $("why").innerHTML = `<div class="why" role="group" aria-label="どこが危ないか">${GK.map((x) => `<button data-g="${x}"><b>${G.GROUPS[x].name}</b><small>${G.GROUPS[x].sub}</small></button>`).join("")}</div>`;
+  document.querySelectorAll("#card [data-a11y-say]").forEach((e) => e.removeAttribute("data-a11y-say")); // 読み上げは2段目の問いと選び肢だけ（funka-level #1 の CodeRabbit）
+  $("why").innerHTML = `<p class="note" data-a11y-say>どこが危ない？</p><div class="why" role="group" aria-label="どこが危ないか">${GK.map((x) => `<button data-g="${x}" data-a11y-say><b>${G.GROUPS[x].name}</b><small>${G.GROUPS[x].sub}</small></button>`).join("")}</div>`;
   document.querySelectorAll(".why button").forEach((b) => (b.onclick = () => chooseWhy(b.dataset.g)));
   paintWhy();
 }
