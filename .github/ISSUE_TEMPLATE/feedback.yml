@@ -28,7 +28,7 @@ body:
     id: good
     attributes:
       label: よかった所
-      placeholder: 例）最後の問題で、なるほどと思った
+      placeholder: 例）レベルごとのちがいがよくわかった
     validations:
       required: false
   - type: textarea
