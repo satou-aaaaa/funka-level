@@ -472,6 +472,14 @@ try {
   const sample = { "fkl-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-13": { m: [0, 1, 0, 0, 2], k: ["l5", "l2", "l4", "keiho", "karyu"] } }, hdays: {}, adays: {}, dex: { l5: 1, l2: 1, l4: 1, keiho: 1, karyu: 1 }, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }), "fkl-fs": "3" };
   await checkTransfer({ browser, url, game: "funka-level", sample, check, open: async (pg) => { if (await pg.locator("#howto[open]").count()) await pg.click("#howto-ok"); } });
 } catch (e) { check("引き継ぎの検査が最後まで動く", false, e.message.split("\n")[0]); }
+  try { // 知らせ（.toast）が出ているあいだも、その下のボタンを押せる（pointer-events:none。2026-11-17 全ゲームの点検）
+    const c = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const q = await c.newPage(); await q.goto(url); await q.waitForTimeout(300);
+    await q.evaluate(() => { const d = document.getElementById("howto"); if (d && d.open) d.close(); toast("知らせの検査"); });
+    const t = await q.evaluate(() => { const e = document.querySelector(".toast"); if (!e) return "知らせが出ない"; const r = e.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return [getComputedStyle(e).pointerEvents, hit && (hit === e || e.contains(hit)) ? "知らせが受ける" : "下が受ける"].join(","); });
+    check("知らせ（.toast）が出ているあいだも、その下を押せる（pointer-events が none）", t === "none,下が受ける", t);
+    await c.close();
+  } catch (e) { check("知らせ（.toast）が出ているあいだも、その下を押せる（pointer-events が none）", false, e.message.split("\n")[0]); }
 await browser.close();
 server.close();
 check("画面のエラーが無い", errors.length === 0, errors.slice(0, 3).join(" | "));
