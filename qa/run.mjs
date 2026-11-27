@@ -77,18 +77,20 @@ const KEIHO = { 1: "噴火予報", 2: "噴火警報（火口周辺）", 3: "噴�
 
 // ---- 2. ファイルの中身 ----
 const html = readFileSync(path.join(root, "index.html"), "utf8"), gen = readFileSync(path.join(root, "data.js"), "utf8"), readme = readFileSync(path.join(root, "README.md"), "utf8");
+// ひな形の写し（<!-- 名前:begin〜end -->）はゲームの言葉ではないので外し、Core.kofi・Core.KOFI は写す前の形にもどして見る（shared-workflows の sync-template が足した）
+const gameOwn = (t) => t.replace(/<!-- ([a-z0-9-]+):begin[\s\S]*?<!-- \1:end -->/g, "").split("${Core.KOFI}").join("https://ko-fi.com/satouaaaaa").replace(/Core\.kofi\(("(?:[^"\\]|\\.)*"), ("(?:[^"\\]|\\.)*")\)/g, (m, a, b) => "`<p class=\"note kofi\">" + JSON.parse(a) + "、<a href=\"https://ko-fi.com/satouaaaaa\" target=\"_blank\" rel=\"noopener\">Ko-fi でコーヒー1杯の応援</a>をもらえると、" + JSON.parse(b) + "の励みになります（任意・遊ぶのはずっと無料）。</p>`");
 const ext = [...html.matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map((m) => m[1]).filter((u) => !/^https:\/\/fonts\.googleapis\.com(\/|$)|^https:\/\/ko-fi\.com\/satouaaaaa$/.test(u));
 check("外から読むのは文字（Google Fonts）だけ。スクリプト・広告・解析を入れない（出典のリンクは押したときに開くだけ）", ext.length === 0 && ![...html.matchAll(/<script[^>]+src="([^"]+)"/g)].some((m) => /^https?:/.test(m[1])), ext.join(","));
 check("CSP で通信先を自分だけにしている", /connect-src 'self'/.test(html) && !/connect-src[^;"]*https/.test(html));
 check("Math.random は練習・とことんの種だけ（今日の5問・上級は日付の乱数。data.js には無い）", (html.match(/Math\.random/g) || []).length === 2 && !/Math\.random/.test(gen));
 check("乱数は sort の比較の中で引かない（ブラウザで引く回数が変わる）", !/\.sort\(\s*\([^)]*\)\s*=>[^\n;]*\b(R|rng|rand|Math\.random)\s*\(/.test(html + gen));
 check("一行の式の途中にコメント // を足さない（行の残りが消える。rosen-hitofude 2026-11-04）", !/;\s*\/\/[^\n]*;\s*\w/.test(gen.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n")));
-check("言い方：実在の火山の今のレベルを言わない・「安全です」と言い切らない", !/安全です|安心です|噴火しません/.test(html + readme));
-check("言い方：「このゲームについて」に、公式の情報の代わりではないこと・架空であること・本当の情報を見る所がある", /防災の公式の情報の代わりではありません/.test(html) && /架空/.test(html) && /市町村/.test(html) && /気象庁/.test(html) && /代わりではありません/.test(readme));
-check("写し元（健康情報みぬき）の言葉が残っていない（game-dev.md A 手順5）", !/健康|みぬき|根拠なし|医師|薬剤師|188|商品|サプリ|なぜあやしい/.test(html + gen + readme));
+check("言い方：実在の火山の今のレベルを言わない・「安全です」と言い切らない", !/安全です|安心です|噴火しません/.test(gameOwn(html) + readme));
+check("言い方：「このゲームについて」に、公式の情報の代わりではないこと・架空であること・本当の情報を見る所がある", /防災の公式の情報の代わりではありません/.test(gameOwn(html)) && /架空/.test(gameOwn(html)) && /市町村/.test(gameOwn(html)) && /気象庁/.test(gameOwn(html)) && /代わりではありません/.test(readme));
+check("写し元（健康情報みぬき）の言葉が残っていない（game-dev.md A 手順5）", !/健康|みぬき|根拠なし|医師|薬剤師|188|商品|サプリ|なぜあやしい/.test(gameOwn(html) + gen + readme));
 check("画面にお笑いの言葉を入れない（本物っぽく）", !/お笑い|ギャグ|ツッコミ|なんでやねん|（うそ）/.test(html + gen));
 check("引き継ぎ：transfer.js をゲームの script より前に、このゲームの記録のキー（記録・文字・復習）だけで読む・depth.js も前に読む", /<script src="transfer\.js" data-game="funka-level" data-keys="fkl-v1,fkl-fs,fkl-depth"><\/script>\s*<script src="depth\.js" data-game="funka-level" data-key="fkl-depth"><\/script>\s*<\/head>/.test(html) && html.indexOf('src="transfer.js"') < html.indexOf('src="data.js"') && /data-hk/.test(html) && existsSync(path.join(root, "transfer.js")));
-check("好きなだけ遊べる：チケット・回数の上限・🔒で開くモードを入れない（game-dev.md F1・F2）", !/🎫|チケット|すると開く|🔒/.test(html) && !/\blife\b|ELIFE/.test(html));
+check("好きなだけ遊べる：チケット・回数の上限・🔒で開くモードを入れない（game-dev.md F1・F2）", !/🎫|チケット|すると開く|🔒/.test(gameOwn(html)) && !/\blife\b|ELIFE/.test(gameOwn(html)));
 { const og = (k) => (html.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]+)"`)) || [])[1] || "";
   const png = readFileSync(path.join(root, "og.png"));
   check("SNS で貼ると絵と題が出る（OGP・1200×630・絶対URL）", og("og:title") && og("og:description") && og("og:image") === "https://satou-aaaaa.github.io/funka-level/og.png" && og("twitter:card") === "summary_large_image" && png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630); }
